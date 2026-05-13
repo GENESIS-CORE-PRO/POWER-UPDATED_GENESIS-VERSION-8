@@ -136,10 +136,9 @@
 
             const sorted = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
             
-            let high = parseInt(sorted[0]); // Most frequent
-            let low = parseInt(sorted[sorted.length - 1]); // Least frequent/None
+            let high = parseInt(sorted[0]); 
+            let low = parseInt(sorted[sorted.length - 1]); 
 
-            // Fallback random agar kuch na mile
             if (isNaN(high)) high = range[Math.floor(Math.random() * range.length)];
             if (isNaN(low) || low === high) {
                const remaining = range.filter(n => n !== high);
@@ -157,14 +156,16 @@
             const nextP = (BigInt(list[0].issueNumber) + 1n).toString();
             const results = rawData.map(x => x.size);
 
+            // AI 1 - 40% Weight
             let ai1Vote = results[0]; 
             if (results[0] === results[1]) ai1Vote = results[0]; 
             else if (results[0] !== results[1] && results[1] !== results[2]) ai1Vote = results[0] === 'BIG' ? 'SMALL' : 'BIG'; 
             if (results[0] === results[1] && results[2] === results[3] && results[0] !== results[2]) ai1Vote = results[0] === 'BIG' ? 'SMALL' : 'BIG';
 
-            let ai2Vote = (parseInt(list[0].number) <= 4) ? 'SMALL' : 'BIG';
+            // AI 3 - 20% Weight
             const ai3Vote = (rawData.slice(0, 5).filter(x => x.size === 'SMALL').length >= 3) ? "SMALL" : "BIG";
 
+            // AI 4 - 40% Weight
             const scanArea = rawData.slice(0, 20);
             const bigs = scanArea.filter(x => x.size === 'BIG').length;
             const smalls = scanArea.filter(x => x.size === 'SMALL').length;
@@ -172,8 +173,9 @@
             const minority = majority === "BIG" ? "SMALL" : "BIG";
             let ai4Vote = (ai4Mode === "TREND") ? majority : minority;
 
-            let sPoints = (ai1Vote === 'SMALL' ? 30 : 0) + (ai2Vote === 'SMALL' ? 30 : 0) + (ai3Vote === 'SMALL' ? 10 : 0) + (ai4Vote === 'SMALL' ? 30 : 0);
-            let bPoints = (ai1Vote === 'BIG' ? 30 : 0) + (ai2Vote === 'BIG' ? 30 : 0) + (ai3Vote === 'BIG' ? 10 : 0) + (ai4Vote === 'BIG' ? 30 : 0);
+            // Final Points Calculation (AI 2 Removed)
+            let sPoints = (ai1Vote === 'SMALL' ? 40 : 0) + (ai3Vote === 'SMALL' ? 20 : 0) + (ai4Vote === 'SMALL' ? 40 : 0);
+            let bPoints = (ai1Vote === 'BIG' ? 40 : 0) + (ai3Vote === 'BIG' ? 20 : 0) + (ai4Vote === 'BIG' ? 40 : 0);
 
             const verdict = sPoints > bPoints ? "SMALL" : "BIG";
             const finalNums = getSmartNumbers(list, verdict);
@@ -202,15 +204,12 @@
             historyDB.forEach(item => {
                if (item.period === latest.issueNumber && item.status === 'pending') {
                   item.actualNum = latest.number;
-                  
-                  // JACKPOT CHECK 🎰
                   if (item.numbers.includes(actualNum)) {
                      item.status = 'JACKPOT 🎰';
                   } else {
                      item.status = (item.prediction === actualSize) ? 'WIN' : 'LOSS';
                   }
                   
-                  // AI 4 CYCLE Logic
                   if (ai4Mode === "TREND" && ai4CycleStep === 0) {
                      if (item.ai4Vote !== actualSize) {
                         ai4LossStreak++;
